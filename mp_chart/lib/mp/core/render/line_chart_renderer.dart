@@ -407,48 +407,41 @@ class LineChartRenderer extends LineRadarRenderer {
       }
     } else {
       // only one color per dataset
+      int entryCount = (xBounds?.range ?? 0) + 1;
+      // no need to draw a single point
+      if (entryCount <= 1) return;
 
-      if (mLineBuffer.length <
-          max((entryCount) * pointsPerEntryPair, pointsPerEntryPair) * 2)
-        mLineBuffer = []..length =
-            (max((entryCount) * pointsPerEntryPair, pointsPerEntryPair) * 4);
+      int targetBufferLength = entryCount * (isDrawSteppedEnabled ? 4 : 2);
+      if (mLineBuffer.length < targetBufferLength ||
+          targetBufferLength + 20 <
+              mLineBuffer.length) //if buffer is too big reset size
+        mLineBuffer = []..length = targetBufferLength;
 
-      Entry? e1, e2;
+      Entry? e;
+      e = dataSet.getEntryForIndex(xBounds!.min);
 
-      e1 = dataSet.getEntryForIndex(xBounds!.min);
-
-      if (e1 != null) {
+      if (e != null) {
         int j = 0;
-        for (int x = xBounds!.min!; x <= xBounds!.range! + xBounds!.min!; x++) {
-          e1 = dataSet.getEntryForIndex(x == 0 ? 0 : (x - 1));
-          e2 = dataSet.getEntryForIndex(x);
-
-          if (e1 == null || e2 == null) continue;
-
-          mLineBuffer[j++] = e1.x;
-          mLineBuffer[j++] = e1.y! * phaseY;
-
+        int upper_limit = xBounds!.range! + xBounds!.min!;
+        for (int x = xBounds!.min!; x <= upper_limit; x++) {
+          e = dataSet.getEntryForIndex(x);
+          if (e == null) continue;
+          mLineBuffer[j++] = e.x;
+          mLineBuffer[j++] = e.y! * phaseY;
           if (isDrawSteppedEnabled) {
-            mLineBuffer[j++] = e2.x;
-            mLineBuffer[j++] = e1.y! * phaseY;
-            mLineBuffer[j++] = e2.x;
-            mLineBuffer[j++] = e1.y! * phaseY;
+            Entry? next = dataSet
+                .getEntryForIndex(x == upper_limit ? upper_limit : (x + 1));
+            if (next == null) continue;
+            mLineBuffer[j++] = next.x!;
+            mLineBuffer[j++] = e.y! * phaseY;
           }
-
-          mLineBuffer[j++] = e2.x;
-          mLineBuffer[j++] = e2.y! * phaseY;
         }
 
         if (j > 0) {
           trans!.pointValuesToPixel(mLineBuffer);
-
-          final int size = max((xBounds!.range! + 1) * pointsPerEntryPair,
-                  pointsPerEntryPair) *
-              2;
-
           renderPaint!..color = dataSet.getColor1();
 
-          CanvasUtils.drawLines(canvas, mLineBuffer, 0, size, renderPaint,
+          CanvasUtils.drawPath(canvas, mLineBuffer, j, renderPaint,
               effect: dataSet.getDashPathEffect());
         }
       }

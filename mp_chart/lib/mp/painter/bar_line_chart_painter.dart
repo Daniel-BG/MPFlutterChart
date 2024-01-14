@@ -504,7 +504,8 @@ abstract class BarLineChartBasePainter<
 
   @override
   void calculateOffsets() {
-    if (legend != null) legendRenderer!.computeLegend(getData());
+    if (legend != null && legend!.enabled)
+      legendRenderer!.computeLegend(getData());
     renderer?.initBuffers();
     calcMinMax();
 

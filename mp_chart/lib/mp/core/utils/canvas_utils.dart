@@ -5,8 +5,8 @@ import 'package:mp_chart/mp/core/adapter_android_mp.dart';
 import 'package:mp_chart/mp/core/limit_line.dart';
 
 abstract class CanvasUtils {
-  static void drawLines(
-      ui.Canvas canvas, List<double?> pts, int offset, int count, ui.Paint? paint,
+  static void drawLines(ui.Canvas canvas, List<double?> pts, int offset,
+      int count, ui.Paint? paint,
       {DashPathEffect? effect}) {
     if (effect == null) {
       for (int i = offset; i < count; i += 4) {
@@ -23,6 +23,19 @@ abstract class CanvasUtils {
         canvas.drawPath(path, paint!);
       }
     }
+  }
+
+  static void drawPath(
+      ui.Canvas canvas, List<double?> pts, int limit, ui.Paint? paint,
+      {DashPathEffect? effect}) {
+    var path = Path();
+    path.reset();
+    path.moveTo(pts[0]!, pts[1]!);
+    for (int i = 2; i < limit; i += 2) {
+      path.lineTo(pts[i]!, pts[i + 1]!);
+    }
+    if (effect != null) path = effect.convert2DashPath(path);
+    canvas.drawPath(path, paint!);
   }
 
   static void drawImage(ui.Canvas canvas, Offset position, ui.Image img,
@@ -45,8 +58,8 @@ abstract class CanvasUtils {
 
   static const double LABEL_SPACE = 2;
 
-  static void renderLimitLabelBackground(Canvas canvas, TextPainter? textPainter,
-      Offset offset, LimitLine limitLine) {
+  static void renderLimitLabelBackground(Canvas canvas,
+      TextPainter? textPainter, Offset offset, LimitLine limitLine) {
     if (limitLine.drawBackground) {
       Paint paint = Paint()..color = limitLine.backgroundColor;
       canvas.drawRect(
