@@ -1,4 +1,3 @@
-
 import 'package:flutter/painting.dart';
 import 'package:mp_chart/mp/core/axis/y_axis.dart';
 import 'package:mp_chart/mp/core/enums/axis_dependency.dart';
@@ -11,15 +10,18 @@ import 'package:mp_chart/mp/core/transformer/transformer.dart';
 import 'package:mp_chart/mp/core/utils/canvas_utils.dart';
 import 'package:mp_chart/mp/core/utils/color_utils.dart';
 import 'package:mp_chart/mp/core/utils/painter_utils.dart';
+import 'package:mp_chart/mp/core/utils/text_painter_cache.dart';
 import 'package:mp_chart/mp/core/utils/utils.dart';
 import 'package:mp_chart/mp/core/view_port.dart';
 
 class YAxisRenderer extends AxisRenderer {
   YAxis? _yAxis;
+  static TextPainterCache? textPainterCache;
 
   Paint? _zeroLinePaint;
 
-  YAxisRenderer(ViewPortHandler? viewPortHandler, YAxis? yAxis, Transformer? trans)
+  YAxisRenderer(
+      ViewPortHandler? viewPortHandler, YAxis? yAxis, Transformer? trans)
       : super(viewPortHandler, trans, yAxis) {
     this._yAxis = yAxis;
 
@@ -32,6 +34,10 @@ class YAxisRenderer extends AxisRenderer {
         ..strokeWidth = 1
         ..style = PaintingStyle.stroke;
     }
+
+    if (_yAxis!.cacheAxisLabels && textPainterCache == null) {
+      textPainterCache = TextPainterCache();
+    }
   }
 
   YAxis? get yAxis => _yAxis;
@@ -43,6 +49,11 @@ class YAxisRenderer extends AxisRenderer {
   set zeroLinePaint(Paint? value) {
     _zeroLinePaint = value;
   }
+
+  static double? _cachedTextSize;
+  static Color? _cachedColor;
+  static String? _cachedFontFamily;
+  static FontWeight? _cachedFontWeight;
 
   /// draws the y-axis labels to the screen
   @override
@@ -71,6 +82,19 @@ class YAxisRenderer extends AxisRenderer {
         xPos = viewPortHandler!.contentRight();
       } else {
         xPos = viewPortHandler!.contentRight();
+      }
+    }
+
+    if (textPainterCache != null) {
+      if (_cachedTextSize != _yAxis!.textSize ||
+          _cachedColor != _yAxis!.textColor ||
+          _cachedFontFamily != _yAxis!.typeface?.fontFamily ||
+          _cachedFontWeight != _yAxis!.typeface?.fontWeight) {
+        textPainterCache!.resetStyle(TextStyle(
+            color: axisLabelPaint!.text!.style!.color,
+            fontSize: _yAxis!.textSize,
+            fontWeight: _yAxis!.typeface?.fontWeight,
+            fontFamily: _yAxis!.typeface?.fontFamily));
       }
     }
 
@@ -122,39 +146,47 @@ class YAxisRenderer extends AxisRenderer {
     YAxisLabelPosition position,
   ) {
     final int from = _yAxis!.drawBottomYLabelEntry ? 0 : 1;
-    final int to =
-        _yAxis!.drawTopYLabelEntry ? _yAxis!.entryCount : (_yAxis!.entryCount - 1);
+    final int to = _yAxis!.drawTopYLabelEntry
+        ? _yAxis!.entryCount
+        : (_yAxis!.entryCount - 1);
 
     // draw
     for (int i = from; i < to; i++) {
       String text = _yAxis!.getFormattedLabel(i);
 
-      axisLabelPaint!.text =
-          TextSpan(text: text, style: axisLabelPaint!.text!.style);
-      axisLabelPaint!.layout();
+      TextPainter? painter;
+      if (textPainterCache != null) {
+        painter = textPainterCache!.get(text);
+      } else {
+        axisLabelPaint!.text =
+            TextSpan(text: text, style: axisLabelPaint!.text!.style);
+        axisLabelPaint!.layout();
+        painter = axisLabelPaint;
+      }
+
       if (axisDependency == AxisDependency.LEFT) {
         if (position == YAxisLabelPosition.OUTSIDE_CHART) {
-          axisLabelPaint!.paint(
+          painter!.paint(
               c,
-              Offset(fixedPosition - axisLabelPaint!.width,
-                  positions[i * 2 + 1]! - axisLabelPaint!.height / 2));
+              Offset(fixedPosition - painter!.width,
+                  positions[i * 2 + 1]! - painter!.height / 2));
         } else {
-          axisLabelPaint!.paint(
+          painter!.paint(
               c,
-              Offset(fixedPosition,
-                  positions[i * 2 + 1]! - axisLabelPaint!.height / 2));
+              Offset(
+                  fixedPosition, positions[i * 2 + 1]! - painter!.height / 2));
         }
       } else {
         if (position == YAxisLabelPosition.OUTSIDE_CHART) {
-          axisLabelPaint!.paint(
+          painter!.paint(
               c,
-              Offset(fixedPosition,
-                  positions[i * 2 + 1]! - axisLabelPaint!.height / 2));
+              Offset(
+                  fixedPosition, positions[i * 2 + 1]! - painter!.height / 2));
         } else {
-          axisLabelPaint!.paint(
+          painter!.paint(
               c,
-              Offset(fixedPosition - axisLabelPaint!.width,
-                  positions[i * 2 + 1]! - axisLabelPaint!.height / 2));
+              Offset(fixedPosition - painter!.width,
+                  positions[i * 2 + 1]! - painter!.height / 2));
         }
       }
     }

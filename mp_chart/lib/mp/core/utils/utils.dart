@@ -8,6 +8,7 @@ import 'package:mp_chart/mp/core/poolable/point.dart';
 import 'package:mp_chart/mp/core/poolable/size.dart';
 import 'package:mp_chart/mp/core/utils/painter_utils.dart';
 import 'package:mp_chart/mp/core/utils/screen_utils.dart';
+import 'package:mp_chart/mp/core/utils/text_painter_cache.dart';
 import 'package:mp_chart/mp/core/value_formatter/default_value_formatter.dart';
 import 'package:mp_chart/mp/core/value_formatter/value_formatter.dart';
 import 'package:mp_chart/mp/core/view_port.dart';
@@ -27,12 +28,23 @@ abstract class Utils {
       TextPainter paint,
       MPPointF anchor,
       double angleDegrees,
-      XAxisPosition position) {
+      XAxisPosition position,
+      {TextPainterCache? textPainterCache}) {
     double drawOffsetX = 0;
     double drawOffsetY = 0;
 
     var originalTextAlign = paint.textAlign;
     paint.textAlign = TextAlign.left;
+
+    TextPainter painter;
+
+    if (textPainterCache != null) {
+      painter = textPainterCache.get(text);
+    } else {
+      painter = paint;
+      painter.text = TextSpan(text: text, style: paint.text!.style);
+      painter.layout();
+    }
 
     if (angleDegrees != 0) {
       double translateX = x!;
@@ -42,20 +54,18 @@ abstract class Utils {
       c.translate(translateX, translateY);
       c.rotate(angleDegrees);
 
-      paint.text = TextSpan(text: text, style: paint.text!.style);
-      paint.layout();
       switch (position) {
         case XAxisPosition.BOTTOM:
-          paint.paint(c, Offset(drawOffsetX, drawOffsetY));
+          painter.paint(c, Offset(drawOffsetX, drawOffsetY));
           break;
         case XAxisPosition.BOTTOM_INSIDE:
-          paint.paint(c, Offset(drawOffsetX, drawOffsetY));
+          painter.paint(c, Offset(drawOffsetX, drawOffsetY));
           break;
         case XAxisPosition.TOP:
-          paint.paint(c, Offset(drawOffsetX, drawOffsetY));
+          painter.paint(c, Offset(drawOffsetX, drawOffsetY));
           break;
         case XAxisPosition.TOP_INSIDE:
-          paint.paint(c, Offset(drawOffsetX, drawOffsetY));
+          painter.paint(c, Offset(drawOffsetX, drawOffsetY));
           break;
         case XAxisPosition.BOTH_SIDED:
           break;
@@ -66,26 +76,26 @@ abstract class Utils {
       drawOffsetX += x!;
       drawOffsetY += y;
 
-      paint.text = TextSpan(text: text, style: paint.text!.style);
-      paint.layout();
       switch (position) {
         case XAxisPosition.BOTTOM:
-          paint.paint(c, Offset(drawOffsetX - paint.width / 2, drawOffsetY));
+          painter.paint(
+              c, Offset(drawOffsetX - painter.width / 2, drawOffsetY));
           break;
         case XAxisPosition.BOTTOM_INSIDE:
-          paint.paint(
+          painter.paint(
               c,
-              Offset(
-                  drawOffsetX - paint.width / 2, drawOffsetY - paint.height));
+              Offset(drawOffsetX - painter.width / 2,
+                  drawOffsetY - painter.height));
           break;
         case XAxisPosition.TOP:
-          paint.paint(
+          painter.paint(
               c,
-              Offset(
-                  drawOffsetX - paint.width / 2, drawOffsetY - paint.height));
+              Offset(drawOffsetX - painter.width / 2,
+                  drawOffsetY - painter.height));
           break;
         case XAxisPosition.TOP_INSIDE:
-          paint.paint(c, Offset(drawOffsetX - paint.width / 2, drawOffsetY));
+          painter.paint(
+              c, Offset(drawOffsetX - painter.width / 2, drawOffsetY));
           break;
         case XAxisPosition.BOTH_SIDED:
           break;
@@ -274,11 +284,11 @@ abstract class Utils {
       try {
         var len = d.toString().split(".")[1].length;
         var value = "0.";
-        for(var i = 0; i < len; i++){
+        for (var i = 0; i < len; i++) {
           value += "0";
         }
         value += "1";
-        if(d >= 0){
+        if (d >= 0) {
           res = double.parse(value);
         } else {
           res = -double.parse(value);

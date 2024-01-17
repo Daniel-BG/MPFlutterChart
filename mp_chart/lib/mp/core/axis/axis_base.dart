@@ -91,11 +91,22 @@ abstract class AxisBase extends ComponentBase {
   /// the total range of values this axis covers
   double _axisRange = 0;
 
+  /// if set to true, the labels in the axis might be cached
+  bool _cacheAxisLabels = false;
+
   AxisBase() {
     textSize = 10;
     xOffset = 5;
     yOffset = 5;
     this._limitLines = [];
+  }
+
+  // ignore: unnecessary_getters_setters
+  bool get cacheAxisLabels => _cacheAxisLabels;
+
+  // ignore: unnecessary_getters_setters
+  set cacheAxisLabels(bool value) {
+    _cacheAxisLabels = value;
   }
 
   // ignore: unnecessary_getters_setters
